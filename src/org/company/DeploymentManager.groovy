@@ -37,25 +37,39 @@ class DeploymentManager implements Serializable {
         steps.echo "Environment: ${environment}"
         steps.echo "================================="
 
-        // Create backup folder
-        steps.sh """
-            mkdir -p deployments/${environment}/backup
-        """
+    // Create backup folder
+    steps.sh """
+        mkdir -p deployments/${environment}/backup
+    """
 
-        // Backup old deployment if exists
-        steps.sh """
-            cp deployments/${environment}/index.html \
-            deployments/${environment}/backup/index.html \
-            2>/dev/null || true
-        """
+    // Backup old deployment if exists
+    steps.sh """
+        cp deployments/${environment}/index.html \
+        deployments/${environment}/backup/index.html \
+        2>/dev/null || true
+    """
 
-        // Deploy new application
-        steps.sh """
-            cp index.html deployments/${environment}/
-        """
+    // Deploy new application
+    steps.sh """
+        cp index.html deployments/${environment}/
+    """
 
-        steps.echo "Deployment Successful"
-    }
+    // Simulate deployment failure for Version 2
+    steps.sh """
+
+        if grep -q "Version 2" index.html; then
+
+            echo "================================="
+            echo "DEPLOYMENT FAILED"
+            echo "Bad Version Detected"
+            echo "================================="
+
+            exit 1
+        fi
+    """
+
+    steps.echo "Deployment Successful"
+}
 
     // Recreate Rollback Method
     def rollback() {
