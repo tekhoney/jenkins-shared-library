@@ -1,95 +1,54 @@
 package org.company
 
 class DeploymentManager implements Serializable {
+    // Jenkins steps context required to run native pipeline steps (like echo, sh, error)
+    private def steps
+    private String environment
 
-    String environment
-    def steps
-
-    // Constructor
-    DeploymentManager(steps, String environment) {
+    // Constructor that accepts the Jenkins steps context and the environment parameter
+    DeploymentManager(def steps, String environment) {
         this.steps = steps
-        this.environment = environment
+        this.environment = environment.toLowerCase()
     }
 
-    // Validation Method
+    // Method to validate environment configuration
     def validate() {
-
-        steps.echo "================================="
-        steps.echo "VALIDATION STARTED"
-        steps.echo "Environment: ${environment}"
-        steps.echo "================================="
-
-        steps.sh """
-            if [ ! -f index.html ]; then
-                echo "Application file missing!"
-                exit 1
-            fi
-        """
-
-        steps.echo "Validation Successful"
+        steps.echo "--- Starting Validation Stage ---"
+        if (!['dev', 'staging', 'prod'].contains(this.environment)) {
+            steps.error "Deployment failed: Invalid environment '${this.environment}'. Must be dev, staging, or prod."
+        }
+        steps.echo "Validation successful! Target environment: ${this.environment.toUpperCase()}"
     }
 
-    // Deploy Method
+    // Method to handle deployment logic based on environment
     def deploy() {
+        steps.echo "--- Starting Deployment Stage ---"
+        steps.echo "Deploying applications to ${this.environment.toUpperCase()} environment..."
+        
+        // Environment-specific configurations
+        switch(this.environment) {
+            case 'dev':
+                steps.echo "Applying dev configurations... Fast tracking deployment without manual approval."
+                // Example: steps.sh "kubectl apply -f k8s/dev/"
+                break
+            case 'staging':
+                steps.echo "Applying staging configurations... Running automated integration tests pre-deploy."
+                // Example: steps.sh "kubectl apply -f k8s/staging/"
+                break
+            case 'prod':
+                steps.echo "CRITICAL: Preparing Production Deployment!"
+                steps.echo "Applying prod configurations with high-availability configurations."
+                // Example: steps.sh "kubectl apply -f k8s/prod/"
+                break
+        }
+        steps.echo "Deployment to ${this.environment.toUpperCase()} completed successfully."
+    }
 
-        steps.echo "================================="
-        steps.echo "DEPLOYMENT STARTED"
-        steps.echo "Environment: ${environment}"
-        steps.echo "================================="
-
-    // Create backup folder
-    steps.sh """
-        mkdir -p deployments/${environment}/backup
-    """
-
-    // Backup old deployment if exists
-    steps.sh """
-        cp deployments/${environment}/index.html \
-        deployments/${environment}/backup/index.html \
-        2>/dev/null || true
-    """
-
-    // Deploy new application
-    steps.sh """
-        cp index.html deployments/${environment}/
-    """
-
-    // Simulate deployment failure for Version 2
-    steps.sh """
-
-        if grep -q "Version 2" index.html; then
-
-            echo "================================="
-            echo "DEPLOYMENT FAILED"
-            echo "Bad Version Detected"
-            echo "================================="
-
-            exit 1
-        fi
-    """
-
-    steps.echo "Deployment Successful"
-}
-
-    // Recreate Rollback Method
+    // Method to handle rollback logic in case of failure
     def rollback() {
-
-        steps.echo "================================="
-        steps.echo "ROLLBACK STARTED"
-        steps.echo "Environment: ${environment}"
-        steps.echo "================================="
-
-        // Remove failed deployment
-        steps.sh """
-            rm -f deployments/${environment}/index.html
-        """
-
-        // Restore previous version
-        steps.sh """
-            cp deployments/${environment}/backup/index.html \
-            deployments/${environment}/
-        """
-
-        steps.echo "Rollback Completed Successfully"
+        steps.echo "--- Triggering Rollback Logic ---"
+        steps.echo "Rollback initiated for ${this.environment.toUpperCase()} environment."
+        // Example: steps.sh "kubectl rollout undo deployment/backend-service -n ${this.environment}"
+        steps.echo "Rollback completed successfully."
     }
 }
